@@ -11,7 +11,7 @@ stages:
 
 unit_testing:
     stage: test
-    image: node:24-apline
+    image: node:24-alpine
     before_script:
         - npm install
     script:
