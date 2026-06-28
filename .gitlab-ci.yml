@@ -1,0 +1,19 @@
+workflow:
+    name: Solar System Pipeline
+    rules:
+        - if: $CI_COMMIT_BRANCH == 'main' || $CI_COMMIT_BRANCH =~ /^feature/
+          when: always
+        - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^feature/ && $CI_PIPELINE_SOURCE == 'merge_request_event'
+          when: always
+
+stages:
+  - test
+
+unit_testing:
+    stage: test
+    image: node:24-apline
+    before_script:
+        - npm install
+    script:
+        - npm test
+    
