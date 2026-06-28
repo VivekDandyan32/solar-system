@@ -20,5 +20,5 @@ unit_testing:
     before_script:
         - npm install
     script:
-        - npx mocha app-test.js --timeout 10000 --exit
+        - npm test
     
