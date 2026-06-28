@@ -10,7 +10,7 @@ stages:
   - test
 
 variables:
-  MONGO_URI: 'mongodb+srv://supercluster.4plmtfj.mongodb.net/'
+  MONGO_URI: 'mongodb+srv://irfu6288_db_user:$M_DB_PASSWORD@supercluster.4plmtfj.mongodb.net/?appName=supercluster'
   MONGO_USERNAME: irfu6288_db_user
   MONGO_PASSWORD: $M_DB_PASSWORD
 
