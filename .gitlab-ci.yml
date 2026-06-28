@@ -16,7 +16,7 @@ variables:
 
 unit_testing:
     stage: test
-    image: node:18-alpine
+    image: node:17-alpine
     before_script:
         - npm install
     script:
