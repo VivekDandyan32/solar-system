@@ -9,6 +9,11 @@ workflow:
 stages:
   - test
 
+variables:
+  MONGO_URI: 'mongodb+srv://supercluster.d83jj.mongodb.net/superdata'
+  MONGO_USERNAME: superuser
+  MONGO_PASSWORD: $M_DB_PASSWORD
+
 unit_testing:
     stage: test
     image: node:24-alpine
