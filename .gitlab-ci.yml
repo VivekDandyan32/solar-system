@@ -45,7 +45,7 @@ code_coverage:
         coverage_report:
           coverage_format: cobertura
           path: coverage/cobertura-coverage.xml
-    coverage: '/All files[^|]*|[^|]*\s+([\d\.]+)/'
+    coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
 
 sample_job:
   stage: test
