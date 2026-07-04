@@ -24,7 +24,7 @@ unit_testing:
     artifacts:
       when: always
       expire_in: 3 days
-      name: Moca-Test-Result
+      name: Moca-Test-Results
       paths:
         - test-results.xml
       reports:
