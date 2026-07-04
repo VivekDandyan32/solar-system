@@ -21,4 +21,12 @@ unit_testing:
         - npm install
     script:
         - npm test
+    artifacts:
+      when: always
+      expire_in: 3 days
+      name: Moca-Test-Result
+      paths:
+        - test-results.xml
+      reports:
+        junit: test-results.xml
     
