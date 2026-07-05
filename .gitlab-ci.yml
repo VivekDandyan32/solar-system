@@ -1,5 +1,5 @@
 workflow:
-    name: Solar System Pipeline for NodeJs
+    name: Solar System Pipeline with NodeJs
     rules:
         - if: $CI_COMMIT_BRANCH == 'main' || $CI_COMMIT_BRANCH =~ /^feature/
           when: always
