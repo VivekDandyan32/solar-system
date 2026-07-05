@@ -9,14 +9,22 @@ workflow:
 stages:
   - test
 
-variables:
-  MONGO_URI: 'mongodb+srv://irfu6288_db_user:$M_DB_PASSWORD@supercluster.4plmtfj.mongodb.net/?appName=supercluster'
-  MONGO_USERNAME: irfu6288_db_user
-  MONGO_PASSWORD: $M_DB_PASSWORD
+# variables:
+#   MONGO_URI: 'mongodb+srv://irfu6288_db_user:$M_DB_PASSWORD@supercluster.4plmtfj.mongodb.net/?appName=supercluster'
+#   MONGO_USERNAME: irfu6288_db_user
+#   MONGO_PASSWORD: $M_DB_PASSWORD
 
 unit_testing:
     stage: test
     image: node:17-alpine
+    services:
+      - name: siddharth67/mongo-db:non-prod
+        alias: mongo
+        pull_policy: always
+    variables:
+      MONGO_URI: 'mongodb://mongo:27017/superData'
+      MONGO_USERNAME: non-prod-user
+      MONGO_PASSWORD: non-prod-password
     cache:
       policy: pull-push
       when: on_success
@@ -42,6 +50,14 @@ unit_testing:
 code_coverage:
     stage: test
     image: node:17-alpine
+    services:
+      - name: siddharth67/mongo-db:non-prod
+        alias: mongo
+        pull_policy: always
+    variables:
+      MONGO_URI: 'mongodb://mongo:27017/superData'
+      MONGO_USERNAME: non-prod-user
+      MONGO_PASSWORD: non-prod-password
     cache:
       policy: pull-push
       when: on_success
