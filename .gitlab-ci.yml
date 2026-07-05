@@ -17,6 +17,15 @@ variables:
 unit_testing:
     stage: test
     image: node:17-alpine
+    cache:
+      policy: pull-push
+      when: on_success
+      paths:
+        - node_modules
+      key:
+        files:
+          - package-lock.json
+        prefix: node_modules
     before_script:
         - npm install
     script:
@@ -33,6 +42,15 @@ unit_testing:
 code_coverage:
     stage: test
     image: node:17-alpine
+    cache:
+      policy: pull-push
+      when: on_success
+      paths:
+        - node_modules
+      key:
+        files:
+          - package-lock.json
+        prefix: node_modules
     before_script:
         - npm install
     script:
