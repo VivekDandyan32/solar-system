@@ -141,7 +141,7 @@ publish_gitlab_registry:
   script:
     - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
     - echo "$CI_REGISTRY -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY_IMAGE"
-    - docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin <<<$CI_REGISTRY_PASSWORD
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
     - docker tag $DOCKER_USERNAME/solar-system:$IMAGE_VERSION $CI_REGISTRY_IMAGE/ss-image:$IMAGE_VERSION
     - docker images
     - docker push $CI_REGISTRY_IMAGE/ss-image:$IMAGE_VERSION
