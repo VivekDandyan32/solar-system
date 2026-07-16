@@ -110,7 +110,6 @@ docker_test:
     - docker_build
   services:
     - docker:29.6.1-dind
-  dependencies: []
   script:
     - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
     - docker run --name solar-system-app -d -p 3000:3000 $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
@@ -126,7 +125,6 @@ docker_push:
     - docker_test
   services:
     - docker:29.6.1-dind
-  dependencies: []
   script:
     - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
     - docker login --username=$DOCKER_USERNAME --password=$DOCKER_PASSWORD
