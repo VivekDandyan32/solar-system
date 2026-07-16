@@ -8,11 +8,14 @@ workflow:
 
 stages:
   - test
+  - containerization
 
-# variables:
+variables:
 #   MONGO_URI: 'mongodb+srv://irfu6288_db_user:$M_DB_PASSWORD@supercluster.4plmtfj.mongodb.net/?appName=supercluster'
 #   MONGO_USERNAME: irfu6288_db_user
 #   MONGO_PASSWORD: $M_DB_PASSWORD
+    DOCKER_USERNAME: siddharth67
+    IMAGE_VERSION: $CI_PIPELINE_ID
 
 unit_testing:
     stage: test
@@ -82,4 +85,12 @@ code_coverage:
     coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
     allow_failure: true
 
-    
+docker_build:
+  stage: containerization
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  dependencies: []
+  script:
+    - docker build -t $DOCKER_USERNAME/solar-system:$IMAGE_VERSION .
+    - docker images $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
