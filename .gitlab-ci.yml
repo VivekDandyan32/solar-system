@@ -14,7 +14,7 @@ variables:
 #   MONGO_URI: 'mongodb+srv://irfu6288_db_user:$M_DB_PASSWORD@supercluster.4plmtfj.mongodb.net/?appName=supercluster'
 #   MONGO_USERNAME: irfu6288_db_user
 #   MONGO_PASSWORD: $M_DB_PASSWORD
-    DOCKER_USERNAME: siddharth67
+    DOCKER_USERNAME: irfanlab
     IMAGE_VERSION: $CI_PIPELINE_ID
 
 unit_testing:
@@ -87,9 +87,9 @@ code_coverage:
 
 docker_build:
   stage: containerization
-  image: docker:24.0.5
+  image: docker:29.6.1
   services:
-    - docker:24.0.5-dind
+    - docker:29.6.1-dind
   dependencies: []
   script:
     - docker build -t $DOCKER_USERNAME/solar-system:$IMAGE_VERSION .
@@ -105,15 +105,29 @@ docker_build:
 
 docker_test:
   stage: containerization
-  image: docker:24.0.5
+  image: docker:29.6.1
   needs:
     - docker_build
   services:
-    - docker:24.0.5-dind
+    - docker:29.6.1-dind
   dependencies: []
   script:
-    - docker load -i image/solar-system-image-$IMAGE_VERSION.tar
+    - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
     - docker run --name solar-system-app -d -p 3000:3000 $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
     - export IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' solar-system-app)
     - echo $IP
     - docker run alpine wget -q -O - http://$IP:3000/live | grep live
+
+docker_push:
+  stage: containerization
+  image: docker:29.6.1
+  needs:
+    - docker_build
+    - docker_test
+  services:
+    - docker:29.6.1-dind
+  dependencies: []
+  script:
+    - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
+    - docker login --username=$DOCKER_USERNAME --password=$DOCKER_PASSWORD
+    - docker push $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
