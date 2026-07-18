@@ -11,12 +11,13 @@ stages:
   - containerization
   - dev_deploy
 
-# variables:
+variables:
 # #   MONGO_URI: 'mongodb+srv://irfu6288_db_user:$M_DB_PASSWORD@supercluster.4plmtfj.mongodb.net/?appName=supercluster'
 # #   MONGO_USERNAME: irfu6288_db_user
 # #   MONGO_PASSWORD: $M_DB_PASSWORD
-#     DOCKER_USERNAME: irfanlab
-#     IMAGE_VERSION: $CI_PIPELINE_ID
+     DOCKER_USERNAME: irfanlab
+     IMAGE_VERSION: $CI_PIPELINE_ID
+     K8S_IMAGE: $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
 
 # unit_testing:
 #     stage: test
@@ -153,17 +154,23 @@ k8s_dev_deploy:
     - mac-local
   image: alpine:3.24.1
   dependencies: []
-  # before_script:
+  before_script:
   #   - apk add curl
   #   - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
   #   - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
   #   - chmod +x kubectl
   #   - mv ./kubectl /usr/bin/kubectl
+      - apk add gettext
+      - envsubst -V
   script:
     - export KUBECONFIG=$DEV_KUBE_CONFIG
     - kubectl version -o yaml
     - kubectl config get-contexts
     - kubectl get nodes
+    - export INGRESS_IP=$(kubectl -n ingress-nginx get services ingress-nginx-contoroller -o jsonpath="{.status.loadbalancer.ingress[0].ip}")
+    - echo $INGRESS_IP
+    - for i in kubernetes/development/*.yaml; do envsubst < $i; done
+    
 
 
   
