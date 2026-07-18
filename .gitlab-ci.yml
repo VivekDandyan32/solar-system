@@ -169,7 +169,7 @@ k8s_dev_deploy:
     - kubectl get nodes
     - export INGRESS_IP=$(kubectl -n ingress-nginx get services ingress-nginx-contoroller -o jsonpath="{.status.loadbalancer.ingress[0].ip}")
     - echo $INGRESS_IP
-    - kubectl -n $NAMESAPCE create secret generic mongo-db-creds --from-literal=MONGO_URI=$MONGO_URI --from-literal=MONGO_USERNAME=$MONGO_USERNAME --from-literal=MONGO_PASSWORD=$MONGO_PASSWORD --save-config --dry-run=client -o yaml | kubectl apply -f -
+    - kubectl -n $NAMESPACE create secret generic mongo-db-creds --from-literal=MONGO_URI=$MONGO_URI --from-literal=MONGO_USERNAME=$MONGO_USERNAME --from-literal=MONGO_PASSWORD=$MONGO_PASSWORD --save-config --dry-run=client -o yaml | kubectl apply -f -
     - for i in kubernetes/development/*.yaml; do envsubst < $i | kubectl appy -f -; done
     - kubectl -n $NAMESPACE get all,secrets,ingress
 
