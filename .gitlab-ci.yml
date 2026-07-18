@@ -9,6 +9,7 @@ workflow:
 stages:
   - test
   - containerization
+  - dev_deploy
 
 variables:
 #   MONGO_URI: 'mongodb+srv://irfu6288_db_user:$M_DB_PASSWORD@supercluster.4plmtfj.mongodb.net/?appName=supercluster'
@@ -145,3 +146,16 @@ publish_gitlab_registry:
     - docker tag $DOCKER_USERNAME/solar-system:$IMAGE_VERSION $CI_REGISTRY_IMAGE/ss-image:$IMAGE_VERSION
     - docker images
     - docker push $CI_REGISTRY_IMAGE/ss-image:$IMAGE_VERSION
+
+k8s_dev_deploy:
+  stage: dev_deploy
+  image: alpine:3.24.1
+  dependencies: []
+  before_script:
+    - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+    - chmod +x kubectl
+    - mv ./kubectl /usr/bin/kubectl
+  script:
+    - kubectl version -o yaml
+  
