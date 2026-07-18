@@ -152,7 +152,7 @@ k8s_dev_deploy:
   image: alpine:3.24.1
   dependencies: []
   before_script:
-    - apk add curl -y
+    - apk add curl
     - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
     - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
     - chmod +x kubectl
