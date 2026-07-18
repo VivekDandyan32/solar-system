@@ -3,8 +3,8 @@ workflow:
     rules:
         - if: $CI_COMMIT_BRANCH == 'main' || $CI_COMMIT_BRANCH =~ /^feature/
           when: always
-        - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^feature/ && $CI_PIPELINE_SOURCE == 'merge_request_event'
-          when: always
+        # - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^feature/ && $CI_PIPELINE_SOURCE == 'merge_request_event'
+        #   when: always
 
 stages:
   - test
@@ -172,6 +172,21 @@ k8s_dev_deploy:
     - kubectl -n $NAMESPACE create secret generic mongo-db-creds --from-literal=MONGO_URI=$MONGO_URI --from-literal=MONGO_USERNAME=$MONGO_USERNAME --from-literal=MONGO_PASSWORD=$MONGO_PASSWORD --save-config --dry-run=client -o yaml | kubectl apply -f -
     - for i in kubernetes/development/*.yaml; do envsubst < $i | kubectl apply -f -; done
     - kubectl -n $NAMESPACE get all,secrets,ingress
+#     - echo "INGRESS_URL=$(kubectl -n $NAMESPACE get ing -o jsonpath={.item[0].spec.tls[0].hosts[0]}") >> app_ingress_url.env
+#   artifacts:
+#     reports:
+#       dotenv: app_ingress_url.env
+
+# k8s_dev_integration_testing:
+#   stage: dev_deploy
+#   tags:
+#     - mac-local
+#   image: alpine:3.24.1
+#   needs:
+#     - k8s_dev_deploy
+#   script:
+#     - curl -s -k https://$INGRESS_URL/live | jq -r .status | grep -i live
+#     - curl -s -k https://$INGRESS_URL/ready | jq -r .status | grep -i ready
 
 
   
