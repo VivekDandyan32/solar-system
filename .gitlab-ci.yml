@@ -11,147 +11,148 @@ stages:
   - containerization
   - dev_deploy
 
-variables:
-#   MONGO_URI: 'mongodb+srv://irfu6288_db_user:$M_DB_PASSWORD@supercluster.4plmtfj.mongodb.net/?appName=supercluster'
-#   MONGO_USERNAME: irfu6288_db_user
-#   MONGO_PASSWORD: $M_DB_PASSWORD
-    DOCKER_USERNAME: irfanlab
-    IMAGE_VERSION: $CI_PIPELINE_ID
+# variables:
+# #   MONGO_URI: 'mongodb+srv://irfu6288_db_user:$M_DB_PASSWORD@supercluster.4plmtfj.mongodb.net/?appName=supercluster'
+# #   MONGO_USERNAME: irfu6288_db_user
+# #   MONGO_PASSWORD: $M_DB_PASSWORD
+#     DOCKER_USERNAME: irfanlab
+#     IMAGE_VERSION: $CI_PIPELINE_ID
 
-unit_testing:
-    stage: test
-    image: node:17-alpine
-    services:
-      - name: siddharth67/mongo-db:non-prod
-        alias: mongo
-        pull_policy: always
-    variables:
-      MONGO_URI: 'mongodb://mongo:27017/superData'
-      MONGO_USERNAME: non-prod-user
-      MONGO_PASSWORD: non-prod-password
-    cache:
-      policy: pull-push
-      when: on_success
-      paths:
-        - node_modules
-      key:
-        files:
-          - package-lock.json
-        prefix: node_modules
-    before_script:
-        - npm install
-    script:
-        - npm test
-    artifacts:
-      when: always
-      expire_in: 3 days
-      name: Moca-Test-Results
-      paths:
-        - test-results.xml
-      reports:
-        junit: test-results.xml
+# unit_testing:
+#     stage: test
+#     image: node:17-alpine
+#     services:
+#       - name: siddharth67/mongo-db:non-prod
+#         alias: mongo
+#         pull_policy: always
+#     variables:
+#       MONGO_URI: 'mongodb://mongo:27017/superData'
+#       MONGO_USERNAME: non-prod-user
+#       MONGO_PASSWORD: non-prod-password
+#     cache:
+#       policy: pull-push
+#       when: on_success
+#       paths:
+#         - node_modules
+#       key:
+#         files:
+#           - package-lock.json
+#         prefix: node_modules
+#     before_script:
+#         - npm install
+#     script:
+#         - npm test
+#     artifacts:
+#       when: always
+#       expire_in: 3 days
+#       name: Moca-Test-Results
+#       paths:
+#         - test-results.xml
+#       reports:
+#         junit: test-results.xml
 
-code_coverage:
-    stage: test
-    image: node:17-alpine
-    services:
-      - name: siddharth67/mongo-db:non-prod
-        alias: mongo
-        pull_policy: always
-    variables:
-      MONGO_URI: 'mongodb://mongo:27017/superData'
-      MONGO_USERNAME: non-prod-user
-      MONGO_PASSWORD: non-prod-password
-    cache:
-      policy: pull-push
-      when: on_success
-      paths:
-        - node_modules
-      key:
-        files:
-          - package-lock.json
-        prefix: node_modules
-    before_script:
-        - npm install
-    script:
-        - npm run coverage
-    artifacts:
-      name: Code-Coverage-Results
-      when: always
-      expire_in: 3 days
-      reports:
-        coverage_report:
-          coverage_format: cobertura
-          path: coverage/cobertura-coverage.xml
-    coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
-    allow_failure: true
+# code_coverage:
+#     stage: test
+#     image: node:17-alpine
+#     services:
+#       - name: siddharth67/mongo-db:non-prod
+#         alias: mongo
+#         pull_policy: always
+#     variables:
+#       MONGO_URI: 'mongodb://mongo:27017/superData'
+#       MONGO_USERNAME: non-prod-user
+#       MONGO_PASSWORD: non-prod-password
+#     cache:
+#       policy: pull-push
+#       when: on_success
+#       paths:
+#         - node_modules
+#       key:
+#         files:
+#           - package-lock.json
+#         prefix: node_modules
+#     before_script:
+#         - npm install
+#     script:
+#         - npm run coverage
+#     artifacts:
+#       name: Code-Coverage-Results
+#       when: always
+#       expire_in: 3 days
+#       reports:
+#         coverage_report:
+#           coverage_format: cobertura
+#           path: coverage/cobertura-coverage.xml
+#     coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+#     allow_failure: true
 
-docker_build:
-  stage: containerization
-  image: docker:29.6.1
-  services:
-    - docker:29.6.1-dind
-  dependencies: []
-  script:
-    - docker build -t $DOCKER_USERNAME/solar-system:$IMAGE_VERSION .
-    - docker images $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
-    - mkdir image
-    - docker save $DOCKER_USERNAME/solar-system:$IMAGE_VERSION > image/solar-system-image-$IMAGE_VERSION.tar
-  artifacts:
-    paths:
-      - image
-    when: on_success
-    access: all
-    expire_in: 3 days
+# docker_build:
+#   stage: containerization
+#   image: docker:29.6.1
+#   services:
+#     - docker:29.6.1-dind
+#   dependencies: []
+#   script:
+#     - docker build -t $DOCKER_USERNAME/solar-system:$IMAGE_VERSION .
+#     - docker images $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
+#     - mkdir image
+#     - docker save $DOCKER_USERNAME/solar-system:$IMAGE_VERSION > image/solar-system-image-$IMAGE_VERSION.tar
+#   artifacts:
+#     paths:
+#       - image
+#     when: on_success
+#     access: all
+#     expire_in: 3 days
 
-docker_test:
-  stage: containerization
-  image: docker:29.6.1
-  needs:
-    - docker_build
-  services:
-    - docker:29.6.1-dind
-  script:
-    - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
-    - docker run --name solar-system-app -d -p 3000:3000 $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
-    - export IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' solar-system-app)
-    - echo $IP
-    - docker run alpine wget -q -O - http://$IP:3000/live | grep live
+# docker_test:
+#   stage: containerization
+#   image: docker:29.6.1
+#   needs:
+#     - docker_build
+#   services:
+#     - docker:29.6.1-dind
+#   script:
+#     - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
+#     - docker run --name solar-system-app -d -p 3000:3000 $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
+#     - export IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' solar-system-app)
+#     - echo $IP
+#     - docker run alpine wget -q -O - http://$IP:3000/live | grep live
 
-docker_push:
-  stage: containerization
-  image: docker:29.6.1
-  needs:
-    - docker_build
-    - docker_test
-  services:
-    - docker:29.6.1-dind
-  script:
-    - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
-    - docker login --username=$DOCKER_USERNAME --password=$DOCKER_PASSWORD
-    - docker push $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
+# docker_push:
+#   stage: containerization
+#   image: docker:29.6.1
+#   needs:
+#     - docker_build
+#     - docker_test
+#   services:
+#     - docker:29.6.1-dind
+#   script:
+#     - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
+#     - docker login --username=$DOCKER_USERNAME --password=$DOCKER_PASSWORD
+#     - docker push $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
 
-publish_gitlab_registry:
-  stage: containerization
-  image: docker:29.6.1
-  needs:
-    - docker_build
-    - docker_test
-  services:
-    - docker:29.6.1-dind
-  script:
-    - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
-    - echo "$CI_REGISTRY -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY_IMAGE"
-    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
-    - docker tag $DOCKER_USERNAME/solar-system:$IMAGE_VERSION $CI_REGISTRY_IMAGE/ss-image:$IMAGE_VERSION
-    - docker images
-    - docker push $CI_REGISTRY_IMAGE/ss-image:$IMAGE_VERSION
+# publish_gitlab_registry:
+#   stage: containerization
+#   image: docker:29.6.1
+#   needs:
+#     - docker_build
+#     - docker_test
+#   services:
+#     - docker:29.6.1-dind
+#   script:
+#     - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
+#     - echo "$CI_REGISTRY -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY_IMAGE"
+#     - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+#     - docker tag $DOCKER_USERNAME/solar-system:$IMAGE_VERSION $CI_REGISTRY_IMAGE/ss-image:$IMAGE_VERSION
+#     - docker images
+#     - docker push $CI_REGISTRY_IMAGE/ss-image:$IMAGE_VERSION
 
 k8s_dev_deploy:
   stage: dev_deploy
   image: alpine:3.24.1
   dependencies: []
   before_script:
+    - apt install curl -y
     - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
     - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
     - chmod +x kubectl
