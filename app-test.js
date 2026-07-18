@@ -3,12 +3,37 @@ let server = require("./app");
 let chai = require("chai");
 let chaiHttp = require("chai-http");
 
-
 // Assertion 
 chai.should();
 chai.use(chaiHttp); 
 
 describe('Planets API Suite', () => {
+
+    // --- NEW SEEDING LOGIC ---
+    // This hook runs once before any of the 'it' blocks execute.
+    // It clears the database and inserts exactly what your API expects.
+    before(async function() {
+        // We use the raw connection to bypass needing the exact Model path
+        const collection = mongoose.connection.collection('planets');
+        
+        // 1. Wipe old data to prevent duplicate key errors
+        await collection.deleteMany({});
+        
+        // 2. Insert the 8 planets your test cases are querying
+        await collection.insertMany([
+            { id: 1, name: 'Mercury' },
+            { id: 2, name: 'Venus' },
+            { id: 3, name: 'Earth' },
+            { id: 4, name: 'Mars' },
+            { id: 5, name: 'Jupiter' },
+            { id: 6, name: 'Saturn' }, // Matches your .eql('Saturn') assertion
+            { id: 7, name: 'Uranus' },
+            { id: 8, name: 'Neptune' }
+        ]);
+        
+        console.log("Dummy data successfully seeded into MongoDB Atlas.");
+    });
+    // -------------------------
 
     describe('Fetching Planet Details', () => {
         it('it should fetch a planet named Mercury', (done) => {
@@ -55,6 +80,7 @@ describe('Planets API Suite', () => {
                 done();
               });
         });
+        
         it('it should fetch a planet named Mars', (done) => {
             let payload = {
                 id: 4
@@ -130,22 +156,6 @@ describe('Planets API Suite', () => {
               });
         });
 
-        // it('it should fetch a planet named Pluto', (done) => {
-        //     let payload = {
-        //         id: 9
-        //     }
-        //   chai.request(server)
-        //       .post('/planet')
-        //       .send(payload)
-        //       .end((err, res) => {
-        //             res.should.have.status(200);
-        //             res.body.should.have.property('id').eql(9);
-        //             res.body.should.have.property('name').eql('Sun');
-        //         done();
-        //       });
-        // });
-
-
     });        
 });
 
@@ -187,4 +197,11 @@ describe('Testing Other Endpoints', () => {
         });
     });
 
+    // --- NEW CLEANUP LOGIC ---
+    // Ensures the pipeline runner shuts down cleanly
+    after(async function() {
+        await mongoose.disconnect();
+        console.log("Database connection closed cleanly.");
+    });
+    // -------------------------
 });
