@@ -160,7 +160,7 @@ k8s_dev_deploy:
   #   - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
   #   - chmod +x kubectl
   #   - mv ./kubectl /usr/bin/kubectl
-      - apk add gettext
+      - brew install gettext
       - envsubst -V
   script:
     - export KUBECONFIG=$DEV_KUBE_CONFIG
@@ -170,7 +170,7 @@ k8s_dev_deploy:
     - export INGRESS_IP=$(kubectl -n ingress-nginx get services ingress-nginx-contoroller -o jsonpath="{.status.loadbalancer.ingress[0].ip}")
     - echo $INGRESS_IP
     - for i in kubernetes/development/*.yaml; do envsubst < $i; done
-    
+
 
 
   
