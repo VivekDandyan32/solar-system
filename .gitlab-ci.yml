@@ -3,8 +3,8 @@ workflow:
     rules:
         - if: $CI_COMMIT_BRANCH == 'main' || $CI_COMMIT_BRANCH =~ /^feature/
           when: always
-        # - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^feature/ && $CI_PIPELINE_SOURCE == 'merge_request_event'
-        #   when: always
+        - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^feature/ && $CI_PIPELINE_SOURCE == 'merge_request_event'
+          when: always
 
 stages:
   - test
@@ -177,6 +177,9 @@ k8s_dev_deploy:
   artifacts:
     reports:
       dotenv: app_ingress_url.env
+  environment:
+    name: development
+    url: https://$INGRESS_URL
 
 k8s_dev_integration_testing:
   stage: dev_deploy
