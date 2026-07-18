@@ -12,12 +12,12 @@ stages:
   - dev_deploy
 
 variables:
-# #   MONGO_URI: 'mongodb+srv://irfu6288_db_user:$M_DB_PASSWORD@supercluster.4plmtfj.mongodb.net/?appName=supercluster'
-# #   MONGO_USERNAME: irfu6288_db_user
-# #   MONGO_PASSWORD: $M_DB_PASSWORD
-     DOCKER_USERNAME: irfanlab
-     IMAGE_VERSION: $CI_PIPELINE_ID
-     K8S_IMAGE: $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
+    MONGO_URI: 'mongodb+srv://irfu6288_db_user:$M_DB_PASSWORD@supercluster.4plmtfj.mongodb.net/?appName=supercluster'
+    MONGO_USERNAME: irfu6288_db_user
+    MONGO_PASSWORD: $M_DB_PASSWORD
+    DOCKER_USERNAME: irfanlab
+    IMAGE_VERSION: $CI_PIPELINE_ID
+    K8S_IMAGE: $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
 
 # unit_testing:
 #     stage: test
@@ -87,50 +87,50 @@ variables:
 #     coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
 #     allow_failure: true
 
-# docker_build:
-#   stage: containerization
-#   image: docker:29.6.1
-#   services:
-#     - docker:29.6.1-dind
-#   dependencies: []
-#   script:
-#     - docker build -t $DOCKER_USERNAME/solar-system:$IMAGE_VERSION .
-#     - docker images $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
-#     - mkdir image
-#     - docker save $DOCKER_USERNAME/solar-system:$IMAGE_VERSION > image/solar-system-image-$IMAGE_VERSION.tar
-#   artifacts:
-#     paths:
-#       - image
-#     when: on_success
-#     access: all
-#     expire_in: 3 days
+docker_build:
+  stage: containerization
+  image: docker:29.6.1
+  services:
+    - docker:29.6.1-dind
+  dependencies: []
+  script:
+    - docker build -t $DOCKER_USERNAME/solar-system:$IMAGE_VERSION .
+    - docker images $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
+    - mkdir image
+    - docker save $DOCKER_USERNAME/solar-system:$IMAGE_VERSION > image/solar-system-image-$IMAGE_VERSION.tar
+  artifacts:
+    paths:
+      - image
+    when: on_success
+    access: all
+    expire_in: 3 days
 
-# docker_test:
-#   stage: containerization
-#   image: docker:29.6.1
-#   needs:
-#     - docker_build
-#   services:
-#     - docker:29.6.1-dind
-#   script:
-#     - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
-#     - docker run --name solar-system-app -d -p 3000:3000 $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
-#     - export IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' solar-system-app)
-#     - echo $IP
-#     - docker run alpine wget -q -O - http://$IP:3000/live | grep live
+docker_test:
+  stage: containerization
+  image: docker:29.6.1
+  needs:
+    - docker_build
+  services:
+    - docker:29.6.1-dind
+  script:
+    - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
+    - docker run --name solar-system-app -d -p 3000:3000 $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
+    - export IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' solar-system-app)
+    - echo $IP
+    - docker run alpine wget -q -O - http://$IP:3000/live | grep live
 
-# docker_push:
-#   stage: containerization
-#   image: docker:29.6.1
-#   needs:
-#     - docker_build
-#     - docker_test
-#   services:
-#     - docker:29.6.1-dind
-#   script:
-#     - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
-#     - docker login --username=$DOCKER_USERNAME --password=$DOCKER_PASSWORD
-#     - docker push $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
+docker_push:
+  stage: containerization
+  image: docker:29.6.1
+  needs:
+    - docker_build
+    - docker_test
+  services:
+    - docker:29.6.1-dind
+  script:
+    - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
+    - docker login --username=$DOCKER_USERNAME --password=$DOCKER_PASSWORD
+    - docker push $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
 
 # publish_gitlab_registry:
 #   stage: containerization
@@ -169,8 +169,9 @@ k8s_dev_deploy:
     - kubectl get nodes
     - export INGRESS_IP=$(kubectl -n ingress-nginx get services ingress-nginx-contoroller -o jsonpath="{.status.loadbalancer.ingress[0].ip}")
     - echo $INGRESS_IP
-    - for i in kubernetes/development/*.yaml; do envsubst < $i; done
-
+    - kubectl -n $NAMESAPCE create secret generic mongo-db-creds --from-literal=MONGO_URI=$MONGO_URI --from-literal=MONGO_USERNAME=$MONGO_USERNAME --from-literal=MONGO_PASSWORD=$MONGO_PASSWORD --save-config --dry-run=client -o yaml | kubectl apply -f -
+    - for i in kubernetes/development/*.yaml; do envsubst < $i | kubectl appy -f -; done
+    - kubectl -n $NAMESPACE get all,secrets,ingress
 
 
   
