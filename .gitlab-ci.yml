@@ -154,14 +154,14 @@ k8s_dev_deploy:
     - mac-local
   image: alpine:3.24.1
   dependencies: []
-  before_script:
+  # before_script:
   #   - apk add curl
   #   - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
   #   - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
   #   - chmod +x kubectl
   #   - mv ./kubectl /usr/bin/kubectl
-      - brew install gettext
-      - envsubst -V
+      # - brew install gettext
+      # - envsubst -V
   script:
     - export KUBECONFIG=$DEV_KUBE_CONFIG
     - kubectl version -o yaml
