@@ -149,6 +149,8 @@ stages:
 
 k8s_dev_deploy:
   stage: dev_deploy
+  tags:
+    - mac-local
   image: alpine:3.24.1
   dependencies: []
   before_script:
