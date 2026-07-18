@@ -167,12 +167,13 @@ k8s_dev_deploy:
     - kubectl version -o yaml
     - kubectl config get-contexts
     - kubectl get nodes
-    - export INGRESS_IP=$(kubectl -n ingress-nginx get services ingress-nginx-controller -o jsonpath="{.status.loadbalancer.ingress[0].ip}")
+    # - export INGRESS_IP=$(kubectl -n ingress-nginx get services ingress-nginx-controller -o jsonpath="{.status.loadbalancer.ingress[0].ip}")
+    - export INGRESS_IP=127.0.0.1
     - echo $INGRESS_IP
     - kubectl -n $NAMESPACE create secret generic mongo-db-creds --from-literal=MONGO_URI=$MONGO_URI --from-literal=MONGO_USERNAME=$MONGO_USERNAME --from-literal=MONGO_PASSWORD=$MONGO_PASSWORD --save-config --dry-run=client -o yaml | kubectl apply -f -
     - for i in kubernetes/development/*.yaml; do envsubst < $i | kubectl apply -f -; done
     - kubectl -n $NAMESPACE get all,secrets,ingress
-#     - echo "INGRESS_URL=$(kubectl -n $NAMESPACE get ing -o jsonpath={.item[0].spec.tls[0].hosts[0]}") >> app_ingress_url.env
+#     - echo "INGRESS_URL=$(kubectl -n $NAMESPACE get ing -o jsonpath="{.item[0].spec.tls[0].hosts[0]}")" >> app_ingress_url.env
 #   artifacts:
 #     reports:
 #       dotenv: app_ingress_url.env
