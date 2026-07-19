@@ -19,6 +19,8 @@ variables:
     DOCKER_USERNAME: irfanlab
     IMAGE_VERSION: $CI_PIPELINE_ID
     K8S_IMAGE: $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
+    GIT_STRATEGY: clone
+    GIT_DEPTH: "0"
 
 .prepare_nodejs_environment:
     image: node:17-alpine
@@ -232,11 +234,8 @@ k8s_stage_integration_testing:
   stage: stage_deploy
   tags:
     - mac-local
-  image: alpine:3.24.1
+  image: !reference [k8s_dev_integration_testing, image]
   needs:
     - k8s_stage_deploy
-  script:
-    - echo "Testing URL = https://$INGRESS_URL"
-    - curl -s -k https://$INGRESS_URL/live | jq -r .status | grep -i live
-    - curl -s -k https://$INGRESS_URL/ready | jq -r .status | grep -i ready
+  script: !reference [k8s_dev_integration_testing, script]
   
