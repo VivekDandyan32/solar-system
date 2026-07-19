@@ -13,7 +13,8 @@ stages:
   - stage_deploy
 
 include:
-  - component: $CI_SERVER_FQDN/components/code-quality/code-quality@1.0.6
+  # - component: $CI_SERVER_FQDN/components/code-quality/code-quality@1.0.6
+  - template: Jobs/SAST.gitlab-ci.yml
 
 variables:
     MONGO_URI: 'mongodb+srv://irfu6288_db_user:$M_DB_PASSWORD@supercluster.4plmtfj.mongodb.net/?appName=supercluster'
@@ -24,6 +25,7 @@ variables:
     K8S_IMAGE: $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
     GIT_STRATEGY: clone
     GIT_DEPTH: "0"
+    SCAN_KUBERNETES_MANIFESTS: "true"
 
 .prepare_nodejs_environment:
     image: node:17-alpine
@@ -53,14 +55,17 @@ variables:
   image: alpine:3.24.1
   dependencies: []
 
-code_quality:
+# code_quality:
+#   stage: ".pre"
+#   variables:
+#     REPORT_FORMAT: html
+#   artifacts:
+#     paths: [gl-code-quality-report.html]
+#     reports:
+#       codequality: []
+
+sast:
   stage: ".pre"
-  variables:
-    REPORT_FORMAT: html
-  artifacts:
-    paths: [gl-code-quality-report.html]
-    reports:
-      codequality: []
 
 unit_testing:
     stage: test
