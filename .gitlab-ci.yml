@@ -202,8 +202,10 @@ k8s_stage_deploy:
       # - brew install gettext
       # - envsubst -V
   script:
-    - temp_kube_config_file=$(printenv KUBECONFIG)
-    - cat $temp_kube_config_file
+    # - temp_kube_config_file=$(printenv KUBECONFIG)
+    # - cat $temp_kube_config_file
+    - cp $KUBECONFIG safe-config.yaml
+    - export KUBECONFIG=$(pwd)/safe-config.yaml
     - kubectl config get-contexts
     - kubectl config use-context irfan-group4/solar-system:irfan-mac
     - kubectl get nodes
