@@ -1,6 +1,8 @@
 workflow:
     name: Solar System Pipeline with  NodeJs
     rules:
+        - if: $CI_PIPELINE_SOURCE == 'chat'
+          when: always
         - if: $CI_COMMIT_BRANCH == 'main' || $CI_COMMIT_BRANCH =~ /^feature/
           when: always
         - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^feature/ && $CI_PIPELINE_SOURCE == 'merge_request_event'
