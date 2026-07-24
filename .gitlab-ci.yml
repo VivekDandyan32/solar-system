@@ -14,7 +14,8 @@ stages:
 
 include:
   # - component: $CI_SERVER_FQDN/components/code-quality/code-quality@1.0.6
-  - template: Jobs/SAST.gitlab-ci.yml
+  # - template: Jobs/SAST.gitlab-ci.yml
+  - component: $CI_SERVER_FQDN/components/secret-detection/secret-detection@2.3.0
 
 variables:
     MONGO_URI: 'mongodb+srv://irfu6288_db_user:$M_DB_PASSWORD@supercluster.4plmtfj.mongodb.net/?appName=supercluster'
@@ -64,8 +65,13 @@ variables:
 #     reports:
 #       codequality: []
 
-sast:
+# sast:
+#   stage: ".pre"
+
+secret_detection:
   stage: ".pre"
+  variables:
+    SECRET_DETECTION_HISTORIC_SCAN: "true"
 
 unit_testing:
     stage: test
