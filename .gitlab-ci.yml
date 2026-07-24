@@ -13,9 +13,10 @@ stages:
   - stage_deploy
 
 include:
-  # - component: $CI_SERVER_FQDN/components/code-quality/code-quality@1.0.6
-  # - template: Jobs/SAST.gitlab-ci.yml
+  - component: $CI_SERVER_FQDN/components/code-quality/code-quality@1.0.6
+  - template: Jobs/SAST.gitlab-ci.yml
   - component: $CI_SERVER_FQDN/components/secret-detection/secret-detection@2.3.0
+  - template: Jobs/Container-Scanning.gitlab-ci.yml
 
 variables:
     MONGO_URI: 'mongodb+srv://irfu6288_db_user:$M_DB_PASSWORD@supercluster.4plmtfj.mongodb.net/?appName=supercluster'
@@ -56,22 +57,29 @@ variables:
   image: alpine:3.24.1
   dependencies: []
 
-# code_quality:
-#   stage: ".pre"
-#   variables:
-#     REPORT_FORMAT: html
-#   artifacts:
-#     paths: [gl-code-quality-report.html]
-#     reports:
-#       codequality: []
+code_quality:
+  stage: ".pre"
+  variables:
+    REPORT_FORMAT: html
+  artifacts:
+    paths: [gl-code-quality-report.html]
+    reports:
+      codequality: []
 
-# sast:
-#   stage: ".pre"
+sast:
+  stage: ".pre"
 
 secret_detection:
   stage: ".pre"
   variables:
     SECRET_DETECTION_HISTORIC_SCAN: "true"
+
+container_scanning:
+  stage: containerization
+  needs:
+    - docker_push
+  variables:
+    CS_IMAGE: docker.io/$DOCKER_USERNAME/solar-system:$IMAGE_VERSION
 
 unit_testing:
     stage: test
@@ -87,180 +95,180 @@ unit_testing:
       reports:
         junit: test-results.xml
 
-# code_coverage:
-#     stage: test
-#     extends: .prepare_nodejs_environment
-#     script:
-#         - npm run coverage
-#     artifacts:
-#       name: Code-Coverage-Results
-#       when: always
-#       expire_in: 3 days
-#       reports:
-#         coverage_report:
-#           coverage_format: cobertura
-#           path: coverage/cobertura-coverage.xml
-#     coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
-#     allow_failure: true
+code_coverage:
+    stage: test
+    extends: .prepare_nodejs_environment
+    script:
+        - npm run coverage
+    artifacts:
+      name: Code-Coverage-Results
+      when: always
+      expire_in: 3 days
+      reports:
+        coverage_report:
+          coverage_format: cobertura
+          path: coverage/cobertura-coverage.xml
+    coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+    allow_failure: true
 
-# docker_build:
-#   stage: containerization
-#   image: docker:29.6.1
-#   services:
-#     - docker:29.6.1-dind
-#   dependencies: []
-#   script:
-#     - docker build -t $DOCKER_USERNAME/solar-system:$IMAGE_VERSION .
-#     - docker images $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
-#     - mkdir image
-#     - docker save $DOCKER_USERNAME/solar-system:$IMAGE_VERSION > image/solar-system-image-$IMAGE_VERSION.tar
-#   artifacts:
-#     paths:
-#       - image
-#     when: on_success
-#     access: all
-#     expire_in: 3 days
+docker_build:
+  stage: containerization
+  image: docker:29.6.1
+  services:
+    - docker:29.6.1-dind
+  dependencies: []
+  script:
+    - docker build -t $DOCKER_USERNAME/solar-system:$IMAGE_VERSION .
+    - docker images $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
+    - mkdir image
+    - docker save $DOCKER_USERNAME/solar-system:$IMAGE_VERSION > image/solar-system-image-$IMAGE_VERSION.tar
+  artifacts:
+    paths:
+      - image
+    when: on_success
+    access: all
+    expire_in: 3 days
 
-# docker_test:
-#   stage: containerization
-#   image: docker:29.6.1
-#   needs:
-#     - docker_build
-#   services:
-#     - docker:29.6.1-dind
-#   script:
-#     - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
-#     - docker run --name solar-system-app -d -p 3000:3000 $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
-#     - export IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' solar-system-app)
-#     - echo $IP
-#     - docker run alpine wget -q -O - http://$IP:3000/live | grep live
+docker_test:
+  stage: containerization
+  image: docker:29.6.1
+  needs:
+    - docker_build
+  services:
+    - docker:29.6.1-dind
+  script:
+    - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
+    - docker run --name solar-system-app -d -p 3000:3000 $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
+    - export IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' solar-system-app)
+    - echo $IP
+    - docker run alpine wget -q -O - http://$IP:3000/live | grep live
 
-# docker_push:
-#   stage: containerization
-#   image: docker:29.6.1
-#   needs:
-#     - docker_build
-#     - docker_test
-#   services:
-#     - docker:29.6.1-dind
-#   script:
-#     - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
-#     - docker login --username=$DOCKER_USERNAME --password=$DOCKER_PASSWORD
-#     - docker push $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
+docker_push:
+  stage: containerization
+  image: docker:29.6.1
+  needs:
+    - docker_build
+    - docker_test
+  services:
+    - docker:29.6.1-dind
+  script:
+    - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
+    - docker login --username=$DOCKER_USERNAME --password=$DOCKER_PASSWORD
+    - docker push $DOCKER_USERNAME/solar-system:$IMAGE_VERSION
 
-# publish_gitlab_registry:
-#   stage: containerization
-#   image: docker:29.6.1
-#   needs:
-#     - docker_build
-#     - docker_test
-#   services:
-#     - docker:29.6.1-dind
-#   script:
-#     - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
-#     - echo "$CI_REGISTRY -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY_IMAGE"
-#     - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
-#     - docker tag $DOCKER_USERNAME/solar-system:$IMAGE_VERSION $CI_REGISTRY_IMAGE/ss-image:$IMAGE_VERSION
-#     - docker images
-#     - docker push $CI_REGISTRY_IMAGE/ss-image:$IMAGE_VERSION
+publish_gitlab_registry:
+  stage: containerization
+  image: docker:29.6.1
+  needs:
+    - docker_build
+    - docker_test
+  services:
+    - docker:29.6.1-dind
+  script:
+    - docker load -i image/solar-system-image-$CI_PIPELINE_ID.tar
+    - echo "$CI_REGISTRY -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY_IMAGE"
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+    - docker tag $DOCKER_USERNAME/solar-system:$IMAGE_VERSION $CI_REGISTRY_IMAGE/ss-image:$IMAGE_VERSION
+    - docker images
+    - docker push $CI_REGISTRY_IMAGE/ss-image:$IMAGE_VERSION
 
-# k8s_dev_deploy:
-#   <<: *kubernetes_deploy_job
-#   stage: dev_deploy
-#   needs:
-#     - docker_push
-#   # before_script:
-#   #   - apk add curl
-#   #   - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-#   #   - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
-#   #   - chmod +x kubectl
-#   #   - mv ./kubectl /usr/bin/kubectl
-#       # - brew install gettext
-#       # - envsubst -V
-#   script:
-#     # - export KUBECONFIG=$DEV_KUBE_CONFIG
-#     - export KUBECONFIG=~/.kube/config
-#     - kubectl version -o yaml
-#     - kubectl config get-contexts
-#     - kubectl get nodes,po
-#     # - export INGRESS_IP=$(kubectl -n ingress-nginx get services ingress-nginx-controller -o jsonpath="{.status.loadbalancer.ingress[0].ip}")
-#     - export INGRESS_IP=127.0.0.1
-#     - echo $INGRESS_IP
-#     - kubectl -n $NAMESPACE create secret generic mongo-db-creds --from-literal=MONGO_URI=$MONGO_URI --from-literal=MONGO_USERNAME=$MONGO_USERNAME --from-literal=MONGO_PASSWORD=$MONGO_PASSWORD --save-config --dry-run=client -o yaml | kubectl apply -f -
-#     - for i in kubernetes/development/*.yaml; do envsubst < $i | kubectl apply -f -; done
-#     - kubectl -n $NAMESPACE get all,secrets,ingress
-#     # - echo "INGRESS_URL=$(kubectl -n $NAMESPACE get ing -o jsonpath="{.items[0].spec.tls[0].hosts[0]}")" >> app_ingress_url.env
-#     - TARGET_URL=$(kubectl -n $NAMESPACE get ing -o jsonpath='{.items[0].spec.tls[0].hosts[0]}')
-#     - echo "INGRESS_URL=$TARGET_URL" >> app_ingress_url.env
-#   artifacts:
-#     reports:
-#       dotenv: app_ingress_url.env
-#   environment:
-#     name: development
-#     url: https://$INGRESS_URL
+k8s_dev_deploy:
+  <<: *kubernetes_deploy_job
+  stage: dev_deploy
+  needs:
+    - docker_push
+  # before_script:
+  #   - apk add curl
+  #   - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+  #   - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+  #   - chmod +x kubectl
+  #   - mv ./kubectl /usr/bin/kubectl
+      # - brew install gettext
+      # - envsubst -V
+  script:
+    # - export KUBECONFIG=$DEV_KUBE_CONFIG
+    - export KUBECONFIG=~/.kube/config
+    - kubectl version -o yaml
+    - kubectl config get-contexts
+    - kubectl get nodes,po
+    # - export INGRESS_IP=$(kubectl -n ingress-nginx get services ingress-nginx-controller -o jsonpath="{.status.loadbalancer.ingress[0].ip}")
+    - export INGRESS_IP=127.0.0.1
+    - echo $INGRESS_IP
+    - kubectl -n $NAMESPACE create secret generic mongo-db-creds --from-literal=MONGO_URI=$MONGO_URI --from-literal=MONGO_USERNAME=$MONGO_USERNAME --from-literal=MONGO_PASSWORD=$MONGO_PASSWORD --save-config --dry-run=client -o yaml | kubectl apply -f -
+    - for i in kubernetes/development/*.yaml; do envsubst < $i | kubectl apply -f -; done
+    - kubectl -n $NAMESPACE get all,secrets,ingress
+    # - echo "INGRESS_URL=$(kubectl -n $NAMESPACE get ing -o jsonpath="{.items[0].spec.tls[0].hosts[0]}")" >> app_ingress_url.env
+    - TARGET_URL=$(kubectl -n $NAMESPACE get ing -o jsonpath='{.items[0].spec.tls[0].hosts[0]}')
+    - echo "INGRESS_URL=$TARGET_URL" >> app_ingress_url.env
+  artifacts:
+    reports:
+      dotenv: app_ingress_url.env
+  environment:
+    name: development
+    url: https://$INGRESS_URL
 
-# k8s_dev_integration_testing:
-#   stage: dev_deploy
-#   tags:
-#     - mac-local
-#   image: alpine:3.24.1
-#   needs:
-#     - k8s_dev_deploy
-#   script:
-#     - echo "Testing URL = https://$INGRESS_URL"
-#     - curl -s -k https://$INGRESS_URL/live | jq -r .status | grep -i live
-#     - curl -s -k https://$INGRESS_URL/ready | jq -r .status | grep -i ready
+k8s_dev_integration_testing:
+  stage: dev_deploy
+  tags:
+    - mac-local
+  image: alpine:3.24.1
+  needs:
+    - k8s_dev_deploy
+  script:
+    - echo "Testing URL = https://$INGRESS_URL"
+    - curl -s -k https://$INGRESS_URL/live | jq -r .status | grep -i live
+    - curl -s -k https://$INGRESS_URL/ready | jq -r .status | grep -i ready
 
 
-# k8s_stage_deploy:
-#   <<: *kubernetes_deploy_job
-#   stage: stage_deploy
-#   when: manual
-#   # before_script:
-#   #   - apk add curl
-#   #   - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-#   #   - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
-#   #   - chmod +x kubectl
-#   #   - mv ./kubectl /usr/bin/kubectl
-#       # - brew install gettext
-#       # - envsubst -V
-#   script:
-#     # - temp_kube_config_file=$(printenv KUBECONFIG)
-#     # - cat $temp_kube_config_file
-#     - cp $KUBECONFIG safe-config.yaml
-#     - export KUBECONFIG=$(pwd)/safe-config.yaml
-#     - kubectl config get-contexts
-#     - kubectl config use-context irfan-group4/solar-system:irfan-mac
-#     - kubectl get nodes
-#     # - export INGRESS_IP=$(kubectl -n ingress-nginx get services ingress-nginx-controller -o jsonpath="{.status.loadbalancer.ingress[0].ip}")
-#     - export INGRESS_IP=127.0.0.1
-#     - echo $INGRESS_IP
-#     # - kubectl -n $NAMESPACE create secret generic mongo-db-creds --from-literal=MONGO_URI=$MONGO_URI --from-literal=MONGO_USERNAME=$MONGO_USERNAME --from-literal=MONGO_PASSWORD=$MONGO_PASSWORD --save-config --dry-run=client -o yaml | kubectl apply -f -
-#     - kubectl -n $NAMESPACE create secret generic mongo-db-creds --from-literal=MONGO_URI=$MONGO_URI --from-literal=MONGO_USERNAME=$MONGO_USERNAME --from-literal=MONGO_PASSWORD=$MONGO_PASSWORD --save-config --dry-run=client -o yaml > temp-secret.yaml
-#     - kubectl apply -f temp-secret.yaml
-#     # - for i in kubernetes/staging/*.yaml; do envsubst < $i | kubectl apply -f -; done
-#     - |
-#       for i in kubernetes/staging/*.yaml; do 
-#         envsubst < $i > temp-manifest.yaml
-#         kubectl apply -f temp-manifest.yaml
-#       done
-#     - kubectl -n $NAMESPACE get all,secrets,ingress
-#     # - echo "INGRESS_URL=$(kubectl -n $NAMESPACE get ing -o jsonpath='{.items[0].spec.tls[0].hosts[0]}')" >> app_ingress_url.env
-#     - TARGET_URL=$(kubectl -n $NAMESPACE get ing -o jsonpath='{.items[0].spec.tls[0].hosts[0]}')
-#     - echo "INGRESS_URL=$TARGET_URL" >> app_ingress_url.env
-#   artifacts:
-#     reports:
-#       dotenv: app_ingress_url.env
-#   environment:
-#     name: staging
-#     url: https://$INGRESS_URL
+k8s_stage_deploy:
+  <<: *kubernetes_deploy_job
+  stage: stage_deploy
+  when: manual
+  # before_script:
+  #   - apk add curl
+  #   - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+  #   - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+  #   - chmod +x kubectl
+  #   - mv ./kubectl /usr/bin/kubectl
+      # - brew install gettext
+      # - envsubst -V
+  script:
+    # - temp_kube_config_file=$(printenv KUBECONFIG)
+    # - cat $temp_kube_config_file
+    - cp $KUBECONFIG safe-config.yaml
+    - export KUBECONFIG=$(pwd)/safe-config.yaml
+    - kubectl config get-contexts
+    - kubectl config use-context irfan-group4/solar-system:irfan-mac
+    - kubectl get nodes
+    # - export INGRESS_IP=$(kubectl -n ingress-nginx get services ingress-nginx-controller -o jsonpath="{.status.loadbalancer.ingress[0].ip}")
+    - export INGRESS_IP=127.0.0.1
+    - echo $INGRESS_IP
+    # - kubectl -n $NAMESPACE create secret generic mongo-db-creds --from-literal=MONGO_URI=$MONGO_URI --from-literal=MONGO_USERNAME=$MONGO_USERNAME --from-literal=MONGO_PASSWORD=$MONGO_PASSWORD --save-config --dry-run=client -o yaml | kubectl apply -f -
+    - kubectl -n $NAMESPACE create secret generic mongo-db-creds --from-literal=MONGO_URI=$MONGO_URI --from-literal=MONGO_USERNAME=$MONGO_USERNAME --from-literal=MONGO_PASSWORD=$MONGO_PASSWORD --save-config --dry-run=client -o yaml > temp-secret.yaml
+    - kubectl apply -f temp-secret.yaml
+    # - for i in kubernetes/staging/*.yaml; do envsubst < $i | kubectl apply -f -; done
+    - |
+      for i in kubernetes/staging/*.yaml; do 
+        envsubst < $i > temp-manifest.yaml
+        kubectl apply -f temp-manifest.yaml
+      done
+    - kubectl -n $NAMESPACE get all,secrets,ingress
+    # - echo "INGRESS_URL=$(kubectl -n $NAMESPACE get ing -o jsonpath='{.items[0].spec.tls[0].hosts[0]}')" >> app_ingress_url.env
+    - TARGET_URL=$(kubectl -n $NAMESPACE get ing -o jsonpath='{.items[0].spec.tls[0].hosts[0]}')
+    - echo "INGRESS_URL=$TARGET_URL" >> app_ingress_url.env
+  artifacts:
+    reports:
+      dotenv: app_ingress_url.env
+  environment:
+    name: staging
+    url: https://$INGRESS_URL
 
-# k8s_stage_integration_testing:
-#   stage: stage_deploy
-#   tags:
-#     - mac-local
-#   image: !reference [k8s_dev_integration_testing, image]
-#   needs:
-#     - k8s_stage_deploy
-#   script: !reference [k8s_dev_integration_testing, script]
+k8s_stage_integration_testing:
+  stage: stage_deploy
+  tags:
+    - mac-local
+  image: !reference [k8s_dev_integration_testing, image]
+  needs:
+    - k8s_stage_deploy
+  script: !reference [k8s_dev_integration_testing, script]
   
