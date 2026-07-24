@@ -1,5 +1,5 @@
 workflow:
-    name: Solar System Pipeline with  NodeJs
+    name: Solar System Pipeline  NodeJs
     rules:
         - if: $CI_PIPELINE_SOURCE == 'chat'
           when: always
