@@ -32,3 +32,9 @@ jobs:
               
             - name: unit testing
               run: npm test
+
+            - name: archive test result
+              uses: actions/upload-artifact@v3
+              with:
+                name: test-results-unit-test
+                path: test-results.xml
